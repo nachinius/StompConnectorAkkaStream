@@ -1,0 +1,64 @@
+package com.nachinius.akka.stream.stomp.protocol
+
+trait StompProtocol {
+  def decode(input: String): Either[String, Frame]
+
+  def encode(frame: Frame): Either[String, String]
+}
+
+object StompProtocol {
+  val NULL = "\u0000"
+  val CR = "\r"
+  val LF: String = "\n"
+  val COLON = ':'
+  val ESCAPE: Char = '\\'
+  val COMMA = ','
+}
+
+case class Frame(command: StompCommand, headers: Map[String, Seq[String]] = Map(), body: Option[String] = None) {
+  self =>
+  def withDestination(dest: String) = {
+    val nextHeaders = headers + (Frame.Header.destination -> Seq(dest))
+    self.copy(headers = nextHeaders)
+  }
+  def withBody(body: String) = {
+    self.copy(body = Some(body))
+  }
+
+  def isClientFrame = command.isInstanceOf[ClientCommand]
+
+  def isServerFrame = command.isInstanceOf[ServerCommand]
+
+  def isMessage = command == StompCommand.MESSAGE
+
+  def isError = command == StompCommand.ERROR
+
+  def isConnected = command == StompCommand.CONNECTED
+
+  def isReceipt = command == StompCommand.RECEIPT
+
+  def addHeader(header: String, value: String): Frame = self.copy(headers = headers.updated(header,
+    headers.getOrElse(header, Vector.empty) :+ value))
+
+  def replaceHeader(h: String, v: String): Frame = self.copy(headers = headers.updated(h, Vector(v)))
+}
+
+object Frame {
+
+  object Header {
+
+    val acceptVersion = "accept-version"
+    val host = "host"
+    val login = "login"
+    val passcode = "passcode"
+    val heartBeat = "heart-beat"
+    val version = "version"
+    val destination = "destination"
+    val receipt = "receipt"
+    val receiptId = "receipt-id"
+    val contentLength = "content-length"
+    val messageId = "message-id"
+    val subscription = "subscription"
+  }
+
+}
